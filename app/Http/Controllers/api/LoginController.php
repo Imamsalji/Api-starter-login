@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/LoginController.php
 
 namespace App\Http\Controllers\Api;
 
@@ -13,12 +14,6 @@ class LoginController extends Controller
         private readonly AuthService $authService
     ) {}
 
-    /**
-     * Handle login request.
-     *
-     * @param  LoginRequest  $request
-     * @return JsonResponse
-     */
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login(
@@ -26,18 +21,14 @@ class LoginController extends Controller
             password: $request->validated('password'),
         );
 
-        if (! $result['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'],
-                'errors'  => $result['errors'] ?? [],
-            ], JsonResponse::HTTP_UNAUTHORIZED); // 401
-        }
+        // http_status ditentukan oleh AuthService sesuai kondisi:
+        // 200 → sukses
+        // 401 → invalid credentials
+        // 423 → akun frozen (Locked)
+        // 403 → akun inactive (Forbidden)
+        $status = $result['http_status'];
+        unset($result['http_status']); // Bersihkan sebelum dikirim ke client
 
-        return response()->json([
-            'success' => true,
-            'message' => $result['message'],
-            'data'    => $result['data'],
-        ], JsonResponse::HTTP_OK); // 200
+        return response()->json($result, $status);
     }
 }
